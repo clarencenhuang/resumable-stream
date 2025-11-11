@@ -4,10 +4,7 @@
   "description": "Library for resuming and following streams in distributed systems",
   "main": "dist/index.js",
   "files": [
-    "dist",
-    "src",
-    "tsconfig.json",
-    "tsconfig.build.json"
+    "dist"
   ],
   "repository": {
     "type": "git",
@@ -38,7 +35,6 @@
     "clean": "rimraf dist",
     "compile": "rm -f *.tsbuildinfo && tsc -p tsconfig.build.json",
     "build": "pnpm run compile && pnpm run docs",
-    "postinstall": "test -d dist && echo 'dist exists, skipping compile' || pnpm run compile",
     "prepublishOnly": "pnpm build && test -d dist && test -n \"$(ls -A dist)\" || (echo 'ERROR: dist/ is empty or does not exist' && exit 1)",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "docs": "rimraf docs && pnpm typedoc"
@@ -57,10 +53,8 @@
     "rimraf": "^6.0.1",
     "typedoc": "^0.28.3",
     "typedoc-plugin-markdown": "^4.6.2",
+    "typescript": "^5.9.3",
     "vitest": "^3.1.1"
-  },
-  "dependencies": {
-    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "ioredis": "^5.0.0",
