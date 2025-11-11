@@ -7,31 +7,46 @@ import {
   Subscriber,
 } from "..";
 import { createResumableStreamContext as createIoredisResumableStreamContext } from "../ioredis";
+import { createResumableStreamContext as createPostgresResumableStreamContext } from "../postgres";
 import Redis from "ioredis";
+import type { Sql } from "postgres";
 
 export function resumableStreamTests(
   pubsubFactory: () => {
-    subscriber: Subscriber | Redis | undefined;
-    publisher: Publisher | Redis | undefined;
+    subscriber?: Subscriber | Redis;
+    publisher?: Publisher | Redis;
+    sql?: Sql;
+    tableName?: string;
   },
-  entrypoint: "redis" | "ioredis"
+  entrypoint: "redis" | "ioredis" | "postgres"
 ) {
   describe("resumable stream", () => {
     const createResumableStreamContext =
       entrypoint === "redis"
         ? createRedisResumableStreamContext
-        : createIoredisResumableStreamContext;
+        : entrypoint === "ioredis"
+        ? createIoredisResumableStreamContext
+        : createPostgresResumableStreamContext;
 
     let resume: ResumableStreamContext;
 
     beforeEach(async () => {
-      const { subscriber, publisher } = pubsubFactory();
-      resume = createResumableStreamContext({
-        waitUntil: () => Promise.resolve(),
-        subscriber,
-        publisher,
-        keyPrefix: "test-resumable-stream-" + crypto.randomUUID(),
-      });
+      const { subscriber, publisher, sql, tableName } = pubsubFactory();
+      if (entrypoint === "postgres") {
+        resume = (createResumableStreamContext as typeof createPostgresResumableStreamContext)({
+          waitUntil: () => Promise.resolve(),
+          sql: sql!,
+          tableName: tableName!,
+          keyPrefix: "test-resumable-stream-" + crypto.randomUUID(),
+        });
+      } else {
+        resume = createResumableStreamContext({
+          waitUntil: () => Promise.resolve(),
+          subscriber,
+          publisher,
+          keyPrefix: "test-resumable-stream-" + crypto.randomUUID(),
+        } as any);
+      }
     });
 
     it("should act like a normal stream", async () => {
