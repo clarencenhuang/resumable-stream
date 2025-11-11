@@ -7,6 +7,6 @@
     "sourceMap": true,
     "noEmit": false
   },
-  "include": ["src/index.ts", "src/ioredis.ts", "src/redis.ts", "src/postgres.ts"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "node_modules"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/__tests__", "node_modules"]
 }

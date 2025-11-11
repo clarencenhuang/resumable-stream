@@ -21,4 +21,5 @@
 
 ## Functions
 
+- [createResumableStreamContextFactory](functions/createResumableStreamContextFactory.md)
 - [resumeStream](functions/resumeStream.md)
