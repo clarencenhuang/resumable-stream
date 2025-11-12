@@ -54,7 +54,7 @@ export function createPublisherAdapter(sql: Sql, tableName: string): Publisher {
       options?: { EX?: number }
     ): Promise<string | unknown> {
       const expiresAt = options?.EX
-        ? new Date(Date.now() + options.EX * 1000)
+        ? new Date(Date.now() + options.EX * 1000).toISOString()
         : null;
 
       await sql.unsafe(`

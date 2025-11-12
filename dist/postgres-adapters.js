@@ -46,7 +46,7 @@ function createPublisherAdapter(sql, tableName) {
         },
         async set(key, value, options) {
             const expiresAt = (options === null || options === void 0 ? void 0 : options.EX)
-                ? new Date(Date.now() + options.EX * 1000)
+                ? new Date(Date.now() + options.EX * 1000).toISOString()
                 : null;
             await sql.unsafe(`
         INSERT INTO ${tableName} (key, value, expires_at)
