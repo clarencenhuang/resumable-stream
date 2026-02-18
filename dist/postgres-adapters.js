@@ -25,6 +25,48 @@ function hashChannel(channel) {
     return `${prefix}_${hashStr}`;
 }
 /**
+ * Maximum payload size in bytes for pg_notify.
+ * PostgreSQL has an 8000-byte hard limit; we use 7500 to leave a safety margin.
+ */
+const PG_NOTIFY_MAX_BYTES = 7500;
+/**
+ * Splits a message into chunks that each fit within pg_notify's payload limit.
+ * Splits on character boundaries to avoid breaking multi-byte UTF-8 sequences.
+ */
+function splitMessage(message, maxBytes = PG_NOTIFY_MAX_BYTES) {
+    if (Buffer.byteLength(message, "utf8") <= maxBytes) {
+        return [message];
+    }
+    const chunks = [];
+    let start = 0;
+    while (start < message.length) {
+        let low = 1;
+        let high = message.length - start;
+        // Binary search for the largest substring that fits in maxBytes
+        while (low < high) {
+            const mid = Math.ceil((low + high) / 2);
+            if (Buffer.byteLength(message.slice(start, start + mid), "utf8") <=
+                maxBytes) {
+                low = mid;
+            }
+            else {
+                high = mid - 1;
+            }
+        }
+        // Avoid splitting a surrogate pair
+        const endIndex = start + low;
+        if (endIndex < message.length) {
+            const charCode = message.charCodeAt(endIndex);
+            if (charCode >= 0xdc00 && charCode <= 0xdfff && low > 1) {
+                low -= 1;
+            }
+        }
+        chunks.push(message.slice(start, start + low));
+        start += low;
+    }
+    return chunks;
+}
+/**
  * Creates a Publisher adapter for PostgreSQL using the postgres library.
  *
  * @param sql - A postgres Sql instance
@@ -39,8 +81,28 @@ function createPublisherAdapter(sql, tableName) {
         async publish(channel, message) {
             // Hash the channel name to fit Postgres 63-char limit
             const hashedChannel = hashChannel(channel);
-            // Use NOTIFY to send message to channel
-            await sql `SELECT pg_notify(${hashedChannel}, ${message})`;
+            // Split message if it exceeds pg_notify's 8000-byte payload limit.
+            const chunks = splitMessage(message);
+            if (chunks.length === 1) {
+                await sql `SELECT pg_notify(${hashedChannel}, ${chunks[0]})`;
+            }
+            else {
+                // Wrap split chunks in a transaction so all notifications are
+                // delivered atomically at COMMIT. Without this, a consumer could
+                // receive the first chunk's notification, trigger downstream logic
+                // (like sending DONE), and miss the remaining chunks.
+                await sql.unsafe("BEGIN");
+                try {
+                    for (const chunk of chunks) {
+                        await sql `SELECT pg_notify(${hashedChannel}, ${chunk})`;
+                    }
+                    await sql.unsafe("COMMIT");
+                }
+                catch (e) {
+                    await sql.unsafe("ROLLBACK");
+                    throw e;
+                }
+            }
             // Postgres doesn't return listener count, return 0
             return 0;
         },

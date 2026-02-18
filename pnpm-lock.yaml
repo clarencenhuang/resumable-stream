@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 devDependencies:
+  '@electric-sql/pglite':
+    specifier: ^0.3.15
+    version: 0.3.15
   '@types/node':
     specifier: ^20
     version: 20.17.30
@@ -52,6 +55,10 @@ devDependencies:
     version: 3.1.1(@types/node@20.17.30)
 
 packages:
+
+  /@electric-sql/pglite@0.3.15:
+    resolution: {integrity: sha512-Cj++n1Mekf9ETfdc16TlDi+cDDQF0W7EcbyRHYOAeZdsAe8M/FJg18itDTSwyHfar2WIezawM9o0EKaRGVKygQ==}
+    dev: true
 
   /@emnapi/runtime@1.4.3:
     resolution: {integrity: sha512-pBPWdu6MLKROBX05wSNKcNb++m5Er+KQ9QkB+WVM+pW2Kx9hoSrVTnu3BdkI5eBLZoKu/J6mW/B6i6bJB2ytXQ==}
