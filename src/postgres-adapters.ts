@@ -107,16 +107,12 @@ export function createPublisherAdapter(sql: Sql, tableName: string): Publisher {
         // delivered atomically at COMMIT. Without this, a consumer could
         // receive the first chunk's notification, trigger downstream logic
         // (like sending DONE), and miss the remaining chunks.
-        await sql.unsafe("BEGIN");
-        try {
+        // Use sql.begin() which properly pins to a single pooled connection.
+        await sql.begin(async (tx) => {
           for (const chunk of chunks) {
-            await sql`SELECT pg_notify(${hashedChannel}, ${chunk})`;
+            await tx`SELECT pg_notify(${hashedChannel}, ${chunk})`;
           }
-          await sql.unsafe("COMMIT");
-        } catch (e) {
-          await sql.unsafe("ROLLBACK");
-          throw e;
-        }
+        });
       }
 
       // Postgres doesn't return listener count, return 0
